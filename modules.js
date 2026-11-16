@@ -193,9 +193,40 @@
     v.appendChild(el(`<div class="grid g2"><div class="card"><span class="eyebrow">${isAr()?'ملف المهارات':'Skill profile'}</span>${A.radar(vals)}</div><div class="card"><span class="eyebrow">${isAr()?'تطور الدرجات':'Band history'}</span>${histChart(hist)}<div class="small muted" style="margin-top:8px">${hist.length?hist.slice(-8).reverse().map(h=>`<div class="row between"><span>${t(h.kind)}</span><span class="mono">${fmtBand(h.value)} · ${new Date(h.at).toLocaleDateString()}</span></div>`).join(''):(isAr()?'لا توجد نتائج بعد':'No results yet')}</div></div></div>`));
     const srs=Object.values(p.srs); const mastered=srs.filter(s=>s.n>=3).length;
     v.appendChild(el(`<div class="grid g3" style="margin-top:16px"><div class="card"><span class="eyebrow">${t('grammar')}</span><div class="bar" style="margin:8px 0"><i style="width:${Object.keys(p.lessons).length/GRAMMAR_LESSONS.length*100}%"></i></div><span class="small">${Object.keys(p.lessons).length}/${GRAMMAR_LESSONS.length} ${isAr()?'درساً':'lessons'}</span></div><div class="card"><span class="eyebrow">${t('vocab')}</span><div class="bar" style="margin:8px 0"><i style="width:${srs.length?mastered/srs.length*100:0}%"></i></div><span class="small">${mastered} ${isAr()?'كلمة متقنة من':'mastered of'} ${srs.length}</span></div><div class="card"><span class="eyebrow">${t('speaking')}</span><span class="small">${p.speakingLog.length} ${isAr()?'جلسة مسجّلة':'recorded sessions'}</span></div></div>`));
-    const btn=el(`<div class="row" style="margin-top:16px"><button class="btn sm ghost" id="exp">${isAr()?'تصدير بياناتي (JSON)':'Export my data (JSON)'}</button><button class="btn sm ghost" id="reset">${isAr()?'مسح كل البيانات':'Reset everything'}</button></div>`); v.appendChild(btn);
-    $('#exp',btn).onclick=()=>{ navigator.clipboard.writeText(JSON.stringify(p)).then(()=>toast('Copied to clipboard')).catch(()=>toast('Copy failed')); };
-    $('#reset',btn).onclick=()=>{ if($('#reset',btn).dataset.c){ state.profile=Object.assign({},JSON.parse(JSON.stringify({v:1,lang:state.lang,variant:'academic',target:7,testDate:'',placement:{},history:[],lessons:{},srs:{},writingLog:[],speakingLog:[],streak:{last:'',count:0},xp:0}))); save(true); A.go('home'); A.render(); } else { $('#reset',btn).dataset.c='1'; $('#reset',btn).textContent=isAr()?'اضغط مرة أخرى للتأكيد':'Click again to confirm'; } };
+    const btn=el(`<div class="card" style="margin-top:16px"><span class="eyebrow">${isAr()?'نسخة احتياطية':'Backup'}</span><p class="small muted" style="margin:6px 0 12px">${isAr()?'صدّر ملف بياناتك كل فترة واحفظه عندك. تقدر تستورده في أي نسخة من المنصة (claude.ai أو GitHub) وتكمل من نفس المكان.':'Export your data now and then and keep the file. You can import it into any copy of the platform (claude.ai or GitHub) and carry on where you left off.'}</p><div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm" id="exp">${isAr()?'تصدير بياناتي':'Export my data'}</button><button class="btn sm ghost" id="imp">${isAr()?'استيراد بياناتي':'Import my data'}</button><button class="btn sm ghost" id="cpy">${isAr()?'نسخ كنص':'Copy as text'}</button><button class="btn sm ghost" id="reset">${isAr()?'مسح كل البيانات':'Reset everything'}</button><input type="file" id="impFile" accept=".json,application/json" hidden></div><div id="impBox" hidden style="margin-top:12px"><p class="small">${isAr()?'اختر ملف النسخة الاحتياطية (.json)، أو الصق محتواه هنا:':'Choose your backup file (.json), or paste its contents here:'}</p><div class="row" style="gap:8px;margin-bottom:8px"><button class="btn sm ghost" id="pick">${isAr()?'اختيار ملف':'Choose file'}</button></div><textarea id="impText" rows="4" style="width:100%;font-family:var(--mono);font-size:.8rem" placeholder='{"v":1, ...}'></textarea><div class="row" style="gap:8px;margin-top:8px"><button class="btn sm" id="impGo">${isAr()?'استيراد النص':'Import pasted text'}</button><button class="btn sm ghost" id="impCancel">${isAr()?'إلغاء':'Cancel'}</button></div><div id="impConfirm" class="note" hidden style="margin-top:12px"><p id="impMsg" class="small" style="margin-bottom:8px"></p><div class="row" style="gap:8px"><button class="btn sm" id="impYes">${isAr()?'نعم، استورد':'Yes, import'}</button><button class="btn sm ghost" id="impNo">${isAr()?'لا':'No'}</button></div></div></div></div>`); v.appendChild(btn);
+    const json=()=>JSON.stringify(state.profile,null,2);
+    const fname=()=>'band-nine-lab-backup-'+A.today()+'.json';
+    $('#exp',btn).onclick=async()=>{
+      const dl=state.cap.downloads;
+      if(dl){ try{ await dl.save({filename:fname(), data:json()}); toast(isAr()?'تم حفظ الملف':'File saved'); }catch(e){ if(e&&e.code!=='declined') toast(isAr()?'تعذّر الحفظ، استخدم «نسخ كنص»':'Save failed. Use “Copy as text”.'); } return; }
+      try{ const url=URL.createObjectURL(new Blob([json()],{type:'application/json'})); const a=document.createElement('a'); a.href=url; a.download=fname(); document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000); toast(isAr()?'تم تنزيل الملف':'File downloaded'); }
+      catch(e){ toast(isAr()?'تعذّر التنزيل، استخدم «نسخ كنص»':'Download failed. Use “Copy as text”.'); }
+    };
+    $('#cpy',btn).onclick=()=>{ navigator.clipboard.writeText(json()).then(()=>toast(isAr()?'تم النسخ':'Copied to clipboard')).catch(()=>toast(isAr()?'تعذّر النسخ':'Copy failed')); };
+    const box=$('#impBox',btn), file=$('#impFile',btn);
+    $('#imp',btn).onclick=()=>{ box.hidden=false; };
+    $('#impCancel',btn).onclick=()=>{ box.hidden=true; $('#impText',btn).value=''; };
+    $('#pick',btn).onclick=()=>file.click();
+    file.onchange=()=>{ const f=file.files&&file.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>applyImport(String(r.result||'')); r.onerror=()=>toast(isAr()?'تعذّرت قراءة الملف':'Could not read the file'); r.readAsText(f); file.value=''; };
+    $('#impGo',btn).onclick=()=>applyImport($('#impText',btn).value);
+    function applyImport(text){
+      let d; try{ d=JSON.parse(text); }catch(e){ toast(isAr()?'الملف غير صالح (ليس JSON)':'Not a valid JSON file'); return; }
+      const ok = d && typeof d==='object' && !Array.isArray(d) && ('placement' in d || 'history' in d || 'srs' in d) && (d.placement==null || typeof d.placement==='object') && (d.history==null || Array.isArray(d.history));
+      if(!ok){ toast(isAr()?'هذا الملف ليس نسخة احتياطية من المنصة':'This is not a Band Nine Lab backup'); return; }
+      const n=(d.history||[]).length, xp=d.xp||0;
+      box.hidden=false; const cf=$('#impConfirm',btn); cf.hidden=false;
+      $('#impMsg',btn).textContent=isAr()?`سيتم استبدال بياناتك الحالية بهذه النسخة (${n} نتيجة، ${xp} XP). متأكد؟`:`Your current data will be replaced by this backup (${n} results, ${xp} XP). Are you sure?`;
+      $('#impYes',btn).onclick=()=>{ cf.hidden=true; doImport(d); };
+      $('#impNo',btn).onclick=()=>{ cf.hidden=true; };
+    }
+    function doImport(d){
+      const base=A.defaultProfile(), np=Object.assign(base, d);
+      ['placement','lessons','srs','streak'].forEach(k=>{ if(!np[k]||typeof np[k]!=='object'||Array.isArray(np[k])) np[k]=base[k]; });
+      ['history','writingLog','speakingLog'].forEach(k=>{ if(!Array.isArray(np[k])) np[k]=[]; });
+      state.profile=np; state.lang=np.lang||state.lang; save(true);
+      toast(isAr()?'تم استيراد بياناتك':'Your data was imported'); A.render();
+    }
+    $('#reset',btn).onclick=()=>{ if($('#reset',btn).dataset.c){ state.profile=A.defaultProfile(); state.profile.lang=state.lang; save(true); A.go('home'); A.render(); } else { $('#reset',btn).dataset.c='1'; $('#reset',btn).textContent=isAr()?'اضغط مرة أخرى للتأكيد':'Click again to confirm'; } };
   });
   function histChart(hist){ if(!hist.length) return ''; const W=420,H=160,pad=28; const xs=hist.map((h,i)=>pad+i*(W-pad*2)/Math.max(1,hist.length-1)); const y=b=>H-pad-(b-3)/6*(H-pad*2); const col={listening:'var(--info)',reading:'var(--accent)',writing:'var(--warm)',speaking:'var(--good)',grammar:'var(--muted)'};
     let s=`<svg class="band-hist svgchart" viewBox="0 0 ${W} ${H}">`; [3,5,7,9].forEach(b=>{ s+=`<line x1="${pad}" x2="${W-pad}" y1="${y(b)}" y2="${y(b)}" stroke="var(--line)" stroke-dasharray="2 3"/><text x="${pad-6}" y="${y(b)+4}" text-anchor="end">${b}</text>`; });

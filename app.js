@@ -19,7 +19,7 @@ window.App = (function(){
     aiOff:{en:'AI feedback is not available in this view. You can still practise and use the self-check.',ar:'تقييم الذكاء الاصطناعي غير متاح هنا. يمكنك التدرب واستخدام التقييم الذاتي.'},
     thinking:{en:'Evaluating… this usually takes 20–60 seconds.',ar:'جارٍ التقييم… عادة يستغرق 20-60 ثانية.'},
   };
-  const state = { lang:'en', cap:{sample:null,tts:null,dictation:null,db:null,user:null}, uid:null, profile:null, saveTimer:null };
+  const state = { lang:'en', cap:{sample:null,tts:null,dictation:null,db:null,user:null,downloads:null}, uid:null, profile:null, saveTimer:null };
   const t = k => (T[k]||{})[state.lang] || (T[k]||{}).en || k;
   const isAr = () => state.lang==='ar';
   const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -55,7 +55,7 @@ window.App = (function(){
 
   async function initCaps(){
     if(!window.claude || !claude.use) return;
-    const names=['sample','tts','dictation','db','user'];
+    const names=['sample','tts','dictation','db','user','downloads'];
     await Promise.all(names.map(async n=>{ try{ state.cap[n]=await claude.use(n); }catch(e){ state.cap[n]=null; } }));
     if(state.cap.user && state.cap.db){
       try{ state.uid = await state.cap.user.id(); }catch(e){ state.uid=null; }
@@ -600,5 +600,5 @@ Reply with ONLY a JSON object:
     render();
     initCaps();
   }
-  return { boot, route, go, t, isAr, esc, el, $, $$, shuffle, state, save, addXP, toast, fmtBand, bandToCEFR, rawToBand, roundBand, overallBand, LEVELS, LEVEL_BAND, speakLines, stopSpeech, timerWidget, questionForm, gradeForm, listeningPlayer, writingEditor, speakingSession, feedbackView, radar, render, today };
+  return { boot, defaultProfile, route, go, t, isAr, esc, el, $, $$, shuffle, state, save, addXP, toast, fmtBand, bandToCEFR, rawToBand, roundBand, overallBand, LEVELS, LEVEL_BAND, speakLines, stopSpeech, timerWidget, questionForm, gradeForm, listeningPlayer, writingEditor, speakingSession, feedbackView, radar, render, today };
 })();
